@@ -43,7 +43,9 @@
 #include <QtNetwork/QLocalServer>
 #include <QtNetwork/QLocalSocket>
 #include <QtCore/QDir>
-
+#if defined(Q_OS_UNIX)
+#include <unistd.h>
+#endif
 #include "qtlockedfile/qtlockedfile.h"
 
 class QtLocalPeer : public QObject
