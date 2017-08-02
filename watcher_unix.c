@@ -36,6 +36,7 @@
 
 int pid;
 
+//FILE* dbgfp;
 
 uid_t run_uid, uj_uid;
 gid_t run_gid, uj_gid;
@@ -69,8 +70,8 @@ int check_safe_syscall(pid_t pid) {
     if (0 > syscall || syscall >= 1000)  {
         return 0;
     }
+//    fprintf(dbgfp,"syscall %d\n",syscall);
     switch(syscall) {
-    #if 0
     case __NR_vfork:
     case __NR_fork:
     case __NR_wait4:
@@ -80,9 +81,8 @@ int check_safe_syscall(pid_t pid) {
     case __NR_chmod:
     case __NR_chdir:
     case __NR_fchdir:
-        return 0;
     case __NR_execve:
-    #endif
+        return 0;
     default:
         return 1;
     }
@@ -115,6 +115,7 @@ int main(int argc, char *argv[]) {
         signal(SIGTERM, cleanUp);
         struct rusage usage;
         int status;
+//        dbgfp=fopen("/home/user/lemdbg","w");
         while(1) {
             wpid = wait4(-1, &status, __WALL, &usage);
             if(wpid != pid) {
@@ -135,7 +136,7 @@ int main(int argc, char *argv[]) {
                     sig = 0;
                     p_mode = 1;
                 } else if (sig == (SIGTRAP | 0x80)) {
-                    if(!check_safe_syscall(pid)) kill(pid, SIGABRT);
+                    if((exec_time > 0) && (!check_safe_syscall(pid))) kill(pid, SIGABRT);
                     sig = 0;
                 } else if (sig == SIGTRAP) {
                     switch ((status >> 16) & 0xffff) {
@@ -162,7 +163,7 @@ int main(int argc, char *argv[]) {
             }
 
         }
-
+//        fclose(dbgfp);
         if(WIFSTOPPED(status)) {
             wait4(pid, &status, 0, &usage);
         }
