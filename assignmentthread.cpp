@@ -119,8 +119,9 @@ bool AssignmentThread::traditionalTaskPrepare()
     for (int i = 0; i < compilerList.size(); i ++) {
         if (task->getCompilerConfiguration(compilerList[i]->getCompilerName()) == "disable") continue;
         QStringList filters = compilerList[i]->getSourceExtensions();
-        for (int j = 0; j < filters.size(); j ++)
+        for (int j = 0; j < filters.size(); j ++) {
             filters[j] = task->getSourceFileName() + "." + filters[j];
+        }
         QStringList files = contestantDir.entryList(filters, QDir::Files);
         sourceFile = "";
         for (int j = 0; j < files.size(); j ++) {
@@ -139,7 +140,7 @@ bool AssignmentThread::traditionalTaskPrepare()
             QStringList compilerArguments = compilerList[i]->getCompilerArguments();
             QStringList interpreterArguments = compilerList[i]->getInterpreterArguments();
             QString currentConfiguration = task->getCompilerConfiguration(compilerList[i]->getCompilerName());
-            for (int j = 0; j < configurationNames.size(); j ++)
+            for (int j = 0; j < configurationNames.size(); j ++) {
                 if (configurationNames[j] == currentConfiguration) {
                     timeLimitRatio = compilerList[i]->getTimeLimitRatio();
                     memoryLimitRatio = compilerList[i]->getMemoryLimitRatio();
@@ -209,19 +210,22 @@ bool AssignmentThread::traditionalTaskPrepare()
                                 compileMessage = QString::fromLocal8Bit(compiler->readAllStandardOutput().data());
                             } else {
                                 if (compilerList[i]->getCompilerType() == Compiler::Typical) {
-                                    if (! QDir(Settings::temporaryPath() + contestantName).exists(executableFile))
+                                    if (! QDir(Settings::temporaryPath() + contestantName).exists(executableFile)) {
                                         compileState = InvalidCompiler;
-                                    else
+                                    } else {
                                         compileState = CompileSuccessfully;
+                                    }
                                 } else {
                                     QStringList filters = compilerList[i]->getBytecodeExtensions();
-                                    for (int k = 0; k < filters.size(); k ++)
+                                    for (int k = 0; k < filters.size(); k ++) {
                                         filters[k] = QString("*.") + filters[k];
+                                    }
                                     if (QDir(Settings::temporaryPath() + contestantName)
-                                            .entryList(filters, QDir::Files).size() == 0)
+                                            .entryList(filters, QDir::Files).size() == 0) {
                                         compileState = InvalidCompiler;
-                                    else
+                                    } else {
                                         compileState = CompileSuccessfully;
+                                    }
                                 }
                             }
                         delete compiler;
@@ -232,12 +236,13 @@ bool AssignmentThread::traditionalTaskPrepare()
                     
                     break;
                 }
+            }
             break;
         }
     }
     
     if (compileState != CompileSuccessfully) {
-        emit compileError(task->getTotalTimeLimit(), int(compileState));
+        emit compileError(task->getTotalTimeLimit(), (int)compileState);
         return false;
     }
     
@@ -268,10 +273,11 @@ void AssignmentThread::run()
         }
     }
     
-    if (checkRejudgeMode)
+    if (checkRejudgeMode) {
         assign();
-    else
+    } else {
         for (int i = 0; i < settings->getNumberOfThreads(); i ++) assign();
+    }
     
     exec();
 }
@@ -287,8 +293,10 @@ void AssignmentThread::assign()
         TestCase *curTestCase = task->getTestCase(curTestCaseIndex);
         if (curSingleCaseIndex == curTestCase->getInputFiles().size()) {
             curTestCaseIndex ++;
-            for ( ; curTestCaseIndex < task->getTestCaseList().size(); curTestCaseIndex ++)
+            while (curTestCaseIndex < task->getTestCaseList().size()) {
                 if (task->getTestCase(curTestCaseIndex)->getInputFiles().size() > 0) break;
+                curTestCaseIndex ++;
+            }
             curSingleCaseIndex = 0;
             if (curTestCaseIndex == task->getTestCaseList().size()) {
                 if (countFinished == totalSingleCase) quit();
@@ -310,26 +318,29 @@ void AssignmentThread::assign()
     TestCase *curTestCase = task->getTestCase(curTestCaseIndex);
     JudgingThread *thread = new JudgingThread();
     thread->setCheckRejudgeMode(checkRejudgeMode);
-    if (checkRejudgeMode)
+    if (checkRejudgeMode) {
         thread->setExtraTimeRatio(0.1);
-    else
+    } else {
         thread->setExtraTimeRatio(0.1 * settings->getNumberOfThreads());
+    }
     QString workingDirectory = QDir::toNativeSeparators(QDir(Settings::temporaryPath()
                                + QString("_%1.%2").arg(curTestCaseIndex).arg(curSingleCaseIndex))
                                .absolutePath()) + QDir::separator();
     thread->setWorkingDirectory(workingDirectory);
     QDir(Settings::temporaryPath()).mkdir(QString("_%1.%2").arg(curTestCaseIndex).arg(curSingleCaseIndex));
     QStringList entryList = QDir(Settings::temporaryPath() + contestantName).entryList(QDir::Files);
-    for (int i = 0; i < entryList.size(); i ++)
+    for (int i = 0; i < entryList.size(); i ++) {
         QFile::copy(Settings::temporaryPath() + contestantName + QDir::separator() + entryList[i],
                     workingDirectory + entryList[i]);
+    }
     thread->setSpecialJudgeTimeLimit(settings->getSpecialJudgeTimeLimit());
     thread->setDiffPath(settings->getDiffPath());
     if (task->getTaskType() == Task::Traditional) {
-        if (interpreterFlag)
+        if (interpreterFlag) {
             thread->setExecutableFile(executableFile);
-        else
+        } else {
             thread->setExecutableFile(workingDirectory + executableFile);
+        }
         thread->setArguments(arguments);
     }
     if (task->getTaskType() == Task::AnswersOnly) {
@@ -351,10 +362,11 @@ void AssignmentThread::assign()
     if (task->getTaskType() == Task::Traditional) {
         thread->setEnvironment(environment);
         thread->setTimeLimit(qCeil(curTestCase->getTimeLimit() * timeLimitRatio));
-        if (disableMemoryLimitCheck)
+        if (disableMemoryLimitCheck) {
             thread->setMemoryLimit(-1);
-        else
+        } else {
             thread->setMemoryLimit(qCeil(curTestCase->getMemoryLimit() * memoryLimitRatio));
+        }
     }
     running[thread] = qMakePair(curTestCaseIndex, curSingleCaseIndex ++);
     thread->start();
@@ -375,8 +387,9 @@ void AssignmentThread::threadFinished()
     score[cur.first][cur.second] = thread->getScore();
     result[cur.first][cur.second] = thread->getResult();
     message[cur.first][cur.second] = thread->getMessage();
-    if (! checkRejudgeMode && thread->getNeedRejudge())
+    if (! checkRejudgeMode && thread->getNeedRejudge()) {
         needRejudge.append(cur);
+    }
     running.remove(thread);
     countFinished ++;
     delete thread;

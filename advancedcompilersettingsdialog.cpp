@@ -85,8 +85,9 @@ void AdvancedCompilerSettingsDialog::resetEditCompiler(Compiler *compiler)
     ui->memoryLimitRatio->setEnabled(! editCompiler->getDisableMemoryLimitCheck());
     QStringList configurationNames = editCompiler->getConfigurationNames();
     ui->configurationSelect->setEnabled(false);
-    for (int i = 0; i < configurationNames.size(); i ++)
+    for (int i = 0; i < configurationNames.size(); i ++) {
         ui->configurationSelect->addItem(configurationNames[i]);
+    }
     ui->configurationSelect->addItem(tr("Add new ..."));
     ui->configurationSelect->setEnabled(true);
     ui->configurationSelect->setCurrentIndex(0);
@@ -273,8 +274,9 @@ void AdvancedCompilerSettingsDialog::configurationTextChanged()
 {
     if (! ui->configurationSelect->isEnabled()) return;
     if (ui->configurationSelect->currentIndex() == 0) {
-        if (ui->configurationSelect->lineEdit()->text() != "default")
+        if (ui->configurationSelect->lineEdit()->text() != "default") {
             ui->configurationSelect->lineEdit()->setText("default");
+        }
     } else {
         ui->configurationSelect->setItemText(ui->configurationSelect->currentIndex(),
                                              ui->configurationSelect->lineEdit()->text());
@@ -286,10 +288,11 @@ void AdvancedCompilerSettingsDialog::configurationTextChanged()
 void AdvancedCompilerSettingsDialog::deleteConfiguration()
 {
     int index = ui->configurationSelect->currentIndex();
-    if (index + 1 < ui->configurationSelect->count() - 1)
+    if (index + 1 < ui->configurationSelect->count() - 1) {
         ui->configurationSelect->setCurrentIndex(index + 1);
-    else
+    } else {
         ui->configurationSelect->setCurrentIndex(index - 1);
+    }
     editCompiler->deleteConfiguration(index);
     ui->configurationSelect->removeItem(index);
 }
@@ -312,7 +315,8 @@ void AdvancedCompilerSettingsDialog::environmentVariablesButtonClicked()
 {
     EnvironmentVariablesDialog *dialog = new EnvironmentVariablesDialog(this);
     dialog->setProcessEnvironment(editCompiler->getEnvironment());
-    if (dialog->exec() == QDialog::Accepted)
+    if (dialog->exec() == QDialog::Accepted) {
         editCompiler->setEnvironment(dialog->getProcessEnvironment());
+    }
     delete dialog;
 }

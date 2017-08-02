@@ -10,7 +10,7 @@ AddCompilerWizard::AddCompilerWizard(QWidget *parent) :
     
     ui->sourceFileExtensions->setValidator(new QRegExpValidator(QRegExp("(\\w+;)*\\w+"), this));
     ui->bytecodeFileExtensions->setValidator(new QRegExpValidator(QRegExp("(\\w+;)*\\w+"), this));
-    ui->javaMemoryLimit->setValidator(new QIntValidator(128, 2048, this));
+    ui->javaMemoryLimit->setValidator(new QIntValidator(64, 2048, this));
     
 #ifdef Q_OS_LINUX
     if (QFileInfo("/usr/bin/gcc").exists())
@@ -62,12 +62,14 @@ const QList<Compiler*>& AddCompilerWizard::getCompilerList() const
 int AddCompilerWizard::nextId() const
 {
     if (currentId() == 0) {
-        if (ui->customRadioButton->isChecked())
+        if (ui->customRadioButton->isChecked()) {
             return 1;
-        else
+        } else {
             return 2;
-    } else
+        }
+    } else {
         if (currentId() == 3) return -1; else return 3;
+    }
 }
 
 bool AddCompilerWizard::validateCurrentPage()
@@ -103,17 +105,22 @@ bool AddCompilerWizard::validateCurrentPage()
         text += tr("[Custom Compiler]") + "\n";
         text += tr("Compiler Name: ") + ui->compilerName->text() + "\n";
         text += tr("Compiler Type: ") + ui->typeSelect->currentText() + "\n";
-        if (ui->compilerLocation->isEnabled())
+        if (ui->compilerLocation->isEnabled()) {
             text += tr("Compiler\'s Location: ") + ui->compilerLocation->text() + "\n";
-        if (ui->interpreterLocation->isEnabled())
+        }
+        if (ui->interpreterLocation->isEnabled()) {
             text += tr("Interpreter\'s Location: ") + ui->interpreterLocation->text() + "\n";
+        }
         text += tr("Source File Extensions: ") + ui->sourceFileExtensions->text() + "\n";
-        if (ui->bytecodeFileExtensions->isEnabled())
+        if (ui->bytecodeFileExtensions->isEnabled()) {
             text += tr("Byte-code File Extensions: ") + ui->bytecodeFileExtensions->text() + "\n";
-        if (ui->defaultCompilerArguments->isEnabled())
+        }
+        if (ui->defaultCompilerArguments->isEnabled()) {
             text += tr("Default Compiler\'s Arguments: ") + ui->defaultCompilerArguments->text() + "\n";
-        if (ui->defaultInterpreterArguments->isEnabled())
+        }
+        if (ui->defaultInterpreterArguments->isEnabled()) {
             text += tr("Default Interpreter\'s Arguments: ") + ui->defaultInterpreterArguments->text() + "\n";
+        }
         ui->logViewer->setPlainText(text);
     }
     
@@ -158,22 +165,25 @@ bool AddCompilerWizard::validateCurrentPage()
         if (ui->gccGroupBox->isEnabled()) {
             text += tr("[gcc Compiler]") + "\n";
             text += tr("gcc Path: ") + ui->gccPath->text() + "\n";
-            if (ui->gccO2Check->isChecked())
+            if (ui->gccO2Check->isChecked()) {
                 text += tr("Enable O2 Optimization") + "\n";
+            }
             text += "\n";
         }
         if (ui->gppGroupBox->isEnabled()) {
             text += tr("[g++ Compiler]") + "\n";
             text += tr("g++ Path: ") + ui->gppPath->text() + "\n";
-            if (ui->gppO2Check->isChecked())
+            if (ui->gppO2Check->isChecked()) {
                 text += tr("Enable O2 Optimization") + "\n";
+            }
             text += "\n";
         }
         if (ui->fpcGroupBox->isEnabled()) {
             text += tr("[fpc Compiler]") + "\n";
             text += tr("fpc Path: ") + ui->fpcPath->text() + "\n";
-            if (ui->fpcO2Check->isChecked())
+            if (ui->fpcO2Check->isChecked()) {
                 text += tr("Enable O2 Optimization") + "\n";
+            }
             text += "\n";
         }
         if (ui->fbcGroupBox->isEnabled()) {
@@ -190,8 +200,6 @@ bool AddCompilerWizard::validateCurrentPage()
         if (ui->pythonGroupBox->isEnabled()) {
             text += tr("[Python Compiler]") + "\n";
             text += tr("python Path: ") + ui->pythonPath->text() + "\n";
-            if (ui->pythonBytecodeCheck->isChecked())
-                text += tr("Generate Optimized Byte-code") + "\n";
             text += "\n";
         }
         ui->logViewer->setPlainText(text);
@@ -414,10 +422,11 @@ void AddCompilerWizard::accept()
             compiler->setCompilerName("gcc");
             compiler->setCompilerLocation(ui->gccPath->text());
             compiler->setSourceExtensions("c");
-            if (ui->gccO2Check->isChecked())
+            if (ui->gccO2Check->isChecked()) {
                 compiler->addConfiguration("default", "-o %s %s.* -O2", "");
-            else
+            } else {
                 compiler->addConfiguration("default", "-o %s %s.*", "");
+            }
 #ifdef Q_OS_WIN32
             QProcessEnvironment environment;
             QString path = QFileInfo(ui->gccPath->text()).absolutePath();
@@ -433,10 +442,11 @@ void AddCompilerWizard::accept()
             compiler->setCompilerName("g++");
             compiler->setCompilerLocation(ui->gppPath->text());
             compiler->setSourceExtensions("cpp;cc;cxx");
-            if (ui->gppO2Check->isChecked())
+            if (ui->gppO2Check->isChecked()) {
                 compiler->addConfiguration("default", "-o %s %s.* -O2", "");
-            else
+            } else {
                 compiler->addConfiguration("default", "-o %s %s.*", "");
+            }
 #ifdef Q_OS_WIN32
             QProcessEnvironment environment;
             QString path = QFileInfo(ui->gppPath->text()).absolutePath();
@@ -452,10 +462,11 @@ void AddCompilerWizard::accept()
             compiler->setCompilerName("fpc");
             compiler->setCompilerLocation(ui->fpcPath->text());
             compiler->setSourceExtensions("pas;pp;inc");
-            if (ui->fpcO2Check->isChecked())
+            if (ui->fpcO2Check->isChecked()) {
                 compiler->addConfiguration("default", "%s.* -O2", "");
-            else
+            } else {
                 compiler->addConfiguration("default", "%s.*", "");
+            }
             compilerList.append(compiler);
         }
         
@@ -488,17 +499,9 @@ void AddCompilerWizard::accept()
             compiler->setSourceExtensions("py");
             compiler->setTimeLimitRatio(10);
             compiler->setMemoryLimitRatio(5);
-            if (ui->pythonBytecodeCheck->isChecked()) {
-                compiler->setCompilerType(Compiler::InterpretiveWithByteCode);
-                compiler->setCompilerLocation(ui->pythonPath->text());
-                compiler->setInterpreterLocation(ui->pythonPath->text());
-                compiler->setBytecodeExtensions("pyo");
-                compiler->addConfiguration("default", "-O -m py_compile %s.*", "%s.pyo");
-            } else {
-                compiler->setCompilerType(Compiler::InterpretiveWithoutByteCode);
-                compiler->setInterpreterLocation(ui->pythonPath->text());
-                compiler->addConfiguration("default", "", "%s.*");
-            }
+            compiler->setCompilerType(Compiler::InterpretiveWithoutByteCode);
+            compiler->setInterpreterLocation(ui->pythonPath->text());
+            compiler->addConfiguration("default", "", "%s.*");
             compilerList.append(compiler);
         }
     }
