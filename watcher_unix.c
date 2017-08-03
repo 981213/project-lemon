@@ -93,6 +93,34 @@ void cleanUp() {
     exit(0);
 }
 
+char* exec_bin_str(char *argstr) {
+    char *tsp, buff[5];
+    int rposv, i;
+    FILE* fp;
+
+    for(rposv = 1; argstr[rposv] != 0; rposv++) {
+        if(argstr[rposv] == '"') break;
+    }
+
+    for(i = rposv+1; argstr[i] != 0; i++) {
+        if(argstr[i] != ' ') return NULL;
+    }
+    if((argstr[0] == '"') && argstr[rposv] == '"') {
+        tsp=malloc(rposv+5);
+        strncpy(tsp, argstr+1, rposv-1);
+        tsp[rposv]=0;
+        if((fp = fopen(tsp, "rb")) > 0) {
+            fread(buff, 1, 4, fp);
+            fclose(fp);
+            if((buff[0] == 0x7f) && (memcmp(buff + 1, "ELF", 3) == 0)) {
+                return tsp;
+            }
+        }
+        free(tsp);
+    }
+    return NULL;
+}
+
 int main(int argc, char *argv[]) {
     int ptrace_opt = PTRACE_O_TRACESYSGOOD;
     ptrace_opt |= PTRACE_O_TRACECLONE | PTRACE_O_TRACEFORK | PTRACE_O_TRACEVFORK;
@@ -101,13 +129,18 @@ int main(int argc, char *argv[]) {
     int exec_time = 0;
     int sig;
     pid_t wpid;
+    struct rlimit rmem;
+    char* elfpath;
 
     int timeLimit, memoryLimit;
     sscanf(argv[5], "%d", &timeLimit);
     timeLimit = (timeLimit - 1) / 1000 + 1;
     sscanf(argv[6], "%d", &memoryLimit);
     memoryLimit *= 1024 * 1024;
-
+    rmem.rlim_cur = rmem.rlim_max = memoryLimit;
+//    dbgfp=fopen("/home/user/lemdbg","w");
+    elfpath = exec_bin_str(argv[1]);
+    if(elfpath > 0) exec_time = 1;
     pid = fork();
     if (pid > 0) {
         signal(SIGINT, cleanUp);
@@ -115,7 +148,7 @@ int main(int argc, char *argv[]) {
         signal(SIGTERM, cleanUp);
         struct rusage usage;
         int status;
-//        dbgfp=fopen("/home/user/lemdbg","w");
+
         while(1) {
             wpid = wait4(-1, &status, __WALL, &usage);
             if(wpid != pid) {
@@ -171,6 +204,7 @@ int main(int argc, char *argv[]) {
             if (WEXITSTATUS(status) == 1) return 1;
             printf("%d\n", (int)(usage.ru_utime.tv_sec * 1000 + usage.ru_utime.tv_usec / 1000));
             printf("%d\n", (int)(usage.ru_maxrss) * 1024);
+            if((usage.ru_maxrss) * 1024 > memoryLimit)return 3;
             if (WEXITSTATUS(status) != 0) return 2;
             return 0;
         }
@@ -187,15 +221,9 @@ int main(int argc, char *argv[]) {
         if (strlen(argv[3]) > 0) freopen(argv[3], "w", stdout);
         if (strlen(argv[4]) > 0) freopen(argv[4], "w", stderr);
         if (memoryLimit != -1) {
-            setrlimit(RLIMIT_AS, &(struct rlimit) {
-                memoryLimit, memoryLimit
-            });
-            setrlimit(RLIMIT_DATA, &(struct rlimit) {
-                memoryLimit, memoryLimit
-            });
-            setrlimit(RLIMIT_STACK, &(struct rlimit) {
-                memoryLimit, memoryLimit
-            });
+            setrlimit(RLIMIT_AS, &rmem);
+            setrlimit(RLIMIT_DATA, &rmem);
+            setrlimit(RLIMIT_STACK, &rmem);
         }
         setrlimit(RLIMIT_CPU, &(struct rlimit) {
             timeLimit, timeLimit + 1
@@ -203,7 +231,7 @@ int main(int argc, char *argv[]) {
         if(ptrace(PTRACE_TRACEME, 0, NULL, NULL) == -1) {
             return 1;
         }
-        if ((execlp("bash", "bash", "-c", argv[1], NULL) == -1)) {
+        if (((elfpath ? execl(elfpath, argv[1], NULL) : execlp("bash", "bash", "-c", argv[1], NULL)) == -1)) {
             return 1;
         }
     }
